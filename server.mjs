@@ -8,8 +8,8 @@ app.use(express.json());
  * Stellt die Verbindung zur MongoDB her.
  * @type {MongoClient}
  */
-const mongoUrl = process.env.MONGO_URL || 'mongodb://mongo:XbZnRqzcjagkHjtSMPOKqiVZhPocRlJt@mongodb.railway.internal:27017';
-const dbName = process.env.MONGO_DB || 'test';
+const mongoUrl = process.env.MONGO_URL;
+const dbName = process.env.DB_NAME;
 let db;
 
 /**
