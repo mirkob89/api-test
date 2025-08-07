@@ -1,8 +1,10 @@
 import express from 'express';
-import { MongoClient, ObjectId } from 'mongodb';
+import { MongoClient } from 'mongodb';
+import xml2js from 'xml2js';
 
 const app = express();
 app.use(express.json());
+app.use(express.text({ type: 'application/xml' }));
 
 /**
  * Stellt die Verbindung zur MongoDB her.
@@ -27,168 +29,58 @@ initMongo().catch(err => {
 });
 
 /**
- * POST /notification/antrag
- * Speichert Daten in der Collection "antrag". Erwartet ein Objekt mit "id" im Body.
+ * POST /xsd
+ * Erwartet ein XML im Body und gibt ein spezifisches XSD als Antwort zurück.
+ * Das XSD wird auf Basis der Struktur und Typen des XML generiert.
  */
-app.post('/notification/antrag', async (req, res) => {
-  const { id, ...data } = req.body;
-  if (!id) return res.status(400).json({ error: 'id erforderlich' });
-  await db.collection('antrag').updateOne(
-    { id },
-    { $set: { ...data, id } },
-    { upsert: true }
-  );
-  res.json({ success: true, id });
-});
+app.post('/xsd', async (req, res) => {
+  const xml = req.body;
+  if (!xml) return res.status(400).json({ error: 'XML erforderlich' });
 
-/**
- * POST /notification/message
- * Speichert Daten in der Collection "message". Erwartet ein Objekt mit "id" im Body.
- */
-app.post('/notification/message', async (req, res) => {
-  const { id, ...data } = req.body;
-  if (!id) return res.status(400).json({ error: 'id erforderlich' });
-  await db.collection('message').updateOne(
-    { id },
-    { $set: { ...data, id } },
-    { upsert: true }
-  );
-  res.json({ success: true, id });
-});
+  try {
+    // XML parsen
+    const parsed = await xml2js.parseStringPromise(xml, { explicitArray: false });
+    // Wurzelelement extrahieren
+    const rootName = Object.keys(parsed)[0];
+    const rootObj = parsed[rootName];
 
-/**
- * POST /servicenow
- * Speichert Daten in der Collection "servicenow". Erwartet ein Objekt mit "id" im Body.
- */
-app.post('/servicenow', async (req, res) => {
-  const { id, ...data } = req.body;
-  if (!id) return res.status(400).json({ error: 'id erforderlich' });
-  await db.collection('servicenow').updateOne(
-    { id },
-    { $set: { ...data, id } },
-    { upsert: true }
-  );
-  res.json({ success: true, id });
-});
+    // Hilfsfunktion: XSD-Typ bestimmen
+    function getType(val) {
+      if (typeof val === 'number') return 'xs:decimal';
+      if (typeof val === 'boolean') return 'xs:boolean';
+      if (!isNaN(Number(val))) return 'xs:decimal';
+      if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) return 'xs:date';
+      return 'xs:string';
+    }
 
-/**
- * GET /notification/antrag/:id
- * Gibt ein gespeichertes Objekt aus der Collection "antrag" anhand der ID zurück.
- */
-app.get('/notification/antrag/:id', async (req, res) => {
-  const doc = await db.collection('antrag').findOne({ id: req.params.id });
-  if (!doc) return res.status(404).json({ error: 'Nicht gefunden' });
-  res.json(doc);
-});
+    // Hilfsfunktion: XSD für ein Objekt generieren
+    function buildElements(obj) {
+      let xsd = '';
+      for (const key in obj) {
+        const val = obj[key];
+        if (typeof val === 'object' && val !== null) {
+          xsd += `<xs:element name="${key}">\n<xs:complexType>\n<xs:sequence>\n${buildElements(val)}</xs:sequence>\n</xs:complexType>\n</xs:element>\n`;
+        } else {
+          xsd += `<xs:element name="${key}" type="${getType(val)}"/>\n`;
+        }
+      }
+      return xsd;
+    }
 
-/**
- * GET /notification/antrag
- * Gibt alle gespeicherten Objekte aus der Collection "antrag" zurück.
- */
-app.get('/notification/antrag', async (req, res) => {
-  const docs = await db.collection('antrag').find({}).toArray();
-  res.json(docs);
-});
+    // XSD-String bauen
+    const xsd = `<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="${rootName}">
+    <xs:complexType>
+      <xs:sequence>
+        ${buildElements(rootObj)}
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>`;
 
-/**
- * GET /notification/message/:id
- * Gibt ein gespeichertes Objekt aus der Collection "message" anhand der ID zurück.
- */
-app.get('/notification/message/:id', async (req, res) => {
-  const doc = await db.collection('message').findOne({ id: req.params.id });
-  if (!doc) return res.status(404).json({ error: 'Nicht gefunden' });
-  res.json(doc);
-});
-
-/**
- * GET /notification/message
- * Gibt alle gespeicherten Objekte aus der Collection "message" zurück.
- */
-app.get('/notification/message', async (req, res) => {
-  const docs = await db.collection('message').find({}).toArray();
-  res.json(docs);
-});
-
-/**
- * GET /servicenow/:id
- * Gibt ein gespeichertes Objekt aus der Collection "servicenow" anhand der ID zurück.
- */
-app.get('/servicenow/:id', async (req, res) => {
-  const doc = await db.collection('servicenow').findOne({ id: req.params.id });
-  if (!doc) return res.status(404).json({ error: 'Nicht gefunden' });
-  res.json(doc);
-});
-
-/**
- * GET /servicenow
- * Gibt alle gespeicherten Objekte aus der Collection "servicenow" zurück.
- */
-app.get('/servicenow', async (req, res) => {
-  const docs = await db.collection('servicenow').find({}).toArray();
-  res.json(docs);
-});
-
-/**
- * DELETE /notification/antrag/:id
- * Löscht ein Objekt aus der Collection "antrag" anhand der ID.
- */
-app.delete('/notification/antrag/:id', async (req, res) => {
-  const result = await db.collection('antrag').deleteOne({ id: req.params.id });
-  if (result.deletedCount === 0) return res.status(404).json({ error: 'Nicht gefunden' });
-  res.json({ success: true });
-});
-
-/**
- * DELETE /notification/antrag
- * Löscht alle Objekte aus der Collection "antrag".
- */
-app.delete('/notification/antrag', async (req, res) => {
-  await db.collection('antrag').deleteMany({});
-  res.json({ success: true });
-});
-
-/**
- * DELETE /notification/message/:id
- * Löscht ein Objekt aus der Collection "message" anhand der ID.
- */
-app.delete('/notification/message/:id', async (req, res) => {
-  const result = await db.collection('message').deleteOne({ id: req.params.id });
-  if (result.deletedCount === 0) return res.status(404).json({ error: 'Nicht gefunden' });
-  res.json({ success: true });
-});
-
-/**
- * DELETE /notification/message
- * Löscht alle Objekte aus der Collection "message".
- */
-app.delete('/notification/message', async (req, res) => {
-  await db.collection('message').deleteMany({});
-  res.json({ success: true });
-});
-
-/**
- * DELETE /servicenow/:id
- * Löscht ein Objekt aus der Collection "servicenow" anhand der ID.
- */
-app.delete('/servicenow/:id', async (req, res) => {
-  const result = await db.collection('servicenow').deleteOne({ id: req.params.id });
-  if (result.deletedCount === 0) return res.status(404).json({ error: 'Nicht gefunden' });
-  res.json({ success: true });
-});
-
-/**
- * DELETE /servicenow
- * Löscht alle Objekte aus der Collection "servicenow".
- */
-app.delete('/servicenow', async (req, res) => {
-  await db.collection('servicenow').deleteMany({});
-  res.json({ success: true });
-});
-
-/**
- * Startet den Server auf dem angegebenen Port.
- */
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server läuft auf Port ${PORT}`);
+    res.type('application/xml').send(xsd);
+  } catch (err) {
+    res.status(400).json({ error: 'Ungültiges XML', details: err.message });
+  }
 });
