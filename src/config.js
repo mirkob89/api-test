@@ -35,8 +35,8 @@ function normalizeConfig(cfg) {
   const defaultCommitContent = cfg.defaultCommitContent || "Created by automation.";
   // Global default for whether to create commits (can be overridden per branch)
   const defaultCreateCommit = cfg.defaultCreateCommit ?? true;
-  const defaultForcePush = cfg.defaultForcePush ?? false;
-  const gitRemoteUrl = cfg.gitRemoteUrl || process.env.GIT_REMOTE_URL;
+  const emptyCommitPlaceholderPath = cfg.emptyCommitPlaceholderPath !== undefined ? cfg.emptyCommitPlaceholderPath : ".automation/placeholder.txt";
+  const emptyCommitPlaceholderContent = cfg.emptyCommitPlaceholderContent !== undefined ? cfg.emptyCommitPlaceholderContent : "placeholder commit";
   const dryRunEnv = String(process.env.DRY_RUN || "").toLowerCase();
   const dryRun = cfg.dryRun ?? (dryRunEnv === "1" || dryRunEnv === "true");
 
@@ -51,7 +51,8 @@ function normalizeConfig(cfg) {
       content: b.content,
       createCommit: b.createCommit !== undefined ? !!b.createCommit : defaultCreateCommit,
       emptyCommit: !!b.emptyCommit,
-      forcePush: b.forcePush !== undefined ? !!b.forcePush : defaultForcePush,
+      placeholderPath: b.placeholderPath,
+      placeholderContent: b.placeholderContent,
     };
   });
 
@@ -64,8 +65,8 @@ function normalizeConfig(cfg) {
     defaultCommitFilePath,
     defaultCommitContent,
     defaultCreateCommit,
-    defaultForcePush,
-    gitRemoteUrl,
+    emptyCommitPlaceholderPath,
+    emptyCommitPlaceholderContent,
     dryRun,
     branches,
   };
