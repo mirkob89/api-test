@@ -17,6 +17,7 @@
     "express": "5.1.0",
     "form-data": "^4.0.4",
     "mongodb": "6.18.0",
+    "simple-git": "3.27.0",
     "xml2js": "0.6.2"
   },
   "repository": {
@@ -27,7 +28,6 @@
   "bugs": {
     "url": "https://github.com/mirkob89/api-test/issues"
   },
-  "homepage": "https://github.com/mirkob89/api-test#readme"
-,
+  "homepage": "https://github.com/mirkob89/api-test#readme",
   "type": "module"
 }

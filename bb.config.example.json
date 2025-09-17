@@ -7,10 +7,13 @@
   "defaultCommitFilePath": "README.md",
   "defaultCommitContent": "Created by automation",
   "defaultCreateCommit": true,
+  "defaultForcePush": false,
+  "gitRemoteUrl": null,
   "dryRun": false,
   "branches": [
     { "name": "feature/alpha", "targetName": "feature/alpha-target", "from": "main", "commitMessage": "Init feature alpha" },
-    { "name": "feature/beta", "filePath": null }
+    { "name": "feature/beta", "filePath": null },
+    { "name": "feature/gamma", "emptyCommit": true, "forcePush": true, "commitMessage": "Trigger pipeline" }
   ]
 }
 
