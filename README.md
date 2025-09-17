@@ -40,6 +40,21 @@ npm run bb:dry -- -c bb.config.json
 npm run bb -- -c bb.config.json
 ```
 
+### Leeren Commit erstellen und pushen (ohne Dateiänderung)
+- Setze in der Konfig pro Branch `emptyCommit: true`.
+- Optional: `forcePush: true` pro Branch oder global `--force-push` (CLI) bzw. `defaultForcePush` in der Konfig.
+- Optional: `gitRemoteUrl` angeben, ansonsten wird `https://bitbucket.org/<workspace>/<repo>.git` verwendet.
+
+Beispiel-Branch in `bb.config.json`:
+```
+{
+  "name": "feature/gamma",
+  "emptyCommit": true,
+  "forcePush": true,
+  "commitMessage": "Trigger pipeline"
+}
+```
+
 ## Hinweise
 - Branch-Quelle `from` kann ein Branch- oder Tag-Name sein. Standard ist der Default-Branch des Repos.
 - Der initiale Commit kann optional erstellt werden. Wenn aktiv, wird standardmäßig eine Datei (Default `README.md`) angelegt.

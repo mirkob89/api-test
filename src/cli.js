@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { BitbucketClient } from "./bitbucketClient.js";
+import { GitClient } from "./gitClient.js";
 import { loadEnv, loadConfig } from "./config.js";
 
 async function main() {
@@ -11,6 +12,7 @@ async function main() {
     .option("-c, --config <path>", "Pfad zur Konfigurationsdatei", "bb.config.json")
     .option("--dry-run", "Nur anzeigen, was passieren würde", false)
     .option("--env <path>", "Pfad zur .env Datei", ".env")
+    .option("--force-push", "Force Push verwenden, falls leerer Commit erstellt wird", false)
     .showHelpAfterError();
 
   program.parse(process.argv);
@@ -19,6 +21,7 @@ async function main() {
   loadEnv(options.env);
   const cfg = loadConfig(options.config);
   const effectiveDryRun = options.dryRun || cfg.dryRun;
+  const effectiveForcePush = options.forcePush || cfg.defaultForcePush;
 
   const client = new BitbucketClient({
     baseUrl: cfg.baseUrl,
@@ -28,6 +31,8 @@ async function main() {
     appPassword: cfg.appPassword,
     dryRun: effectiveDryRun,
   });
+
+  const gitClient = new GitClient({ dryRun: effectiveDryRun });
 
   if (!effectiveDryRun && (!cfg.username || !cfg.appPassword)) {
     throw new Error("Fehlende Zugangsdaten: BITBUCKET_USERNAME/APP_PASSWORD oder in der Konfig übergeben");
@@ -58,14 +63,30 @@ async function main() {
 
     if (branch.createCommit) {
       const message = branch.commitMessage || `Initial commit on ${targetBranchName}`;
-      // Allow branch.filePath to be null to explicitly skip adding a file; fall back to global default only if undefined
-      const filePath = (branch.filePath === undefined) ? cfg.defaultCommitFilePath : branch.filePath;
-      const content = branch.content || cfg.defaultCommitContent;
-      if (filePath) {
-        const commit = await client.createCommit({ branch: targetBranchName, message, filePath, content });
-        console.log("Commit erstellt:", commit?.hash || commit);
+      if (branch.emptyCommit) {
+        const forcePush = branch.forcePush !== undefined ? branch.forcePush : effectiveForcePush;
+        const result = await gitClient.createEmptyCommitAndPush({
+          remoteUrl: cfg.gitRemoteUrl,
+          workspace: cfg.workspace,
+          repoSlug: cfg.repoSlug,
+          fromRef,
+          branchName: targetBranchName,
+          message,
+          forcePush,
+          username: cfg.username,
+          appPassword: cfg.appPassword,
+        });
+        console.log("Leerer Commit gepusht:", result?.branch || result);
       } else {
-        console.log("Kein Datei-Pfad konfiguriert; überspringe Commit-Erstellung.");
+        // Allow branch.filePath to be null to explicitly skip adding a file; fall back to global default only if undefined
+        const filePath = (branch.filePath === undefined) ? cfg.defaultCommitFilePath : branch.filePath;
+        const content = branch.content || cfg.defaultCommitContent;
+        if (filePath) {
+          const commit = await client.createCommit({ branch: targetBranchName, message, filePath, content });
+          console.log("Commit erstellt:", commit?.hash || commit);
+        } else {
+          console.log("Kein Datei-Pfad konfiguriert; überspringe Commit-Erstellung.");
+        }
       }
     } else {
       console.log("Commit-Erstellung für diesen Branch deaktiviert.");
