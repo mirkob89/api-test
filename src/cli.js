@@ -42,25 +42,31 @@ async function main() {
       continue;
     }
     const branchName = branch.name;
+    const targetBranchName = branch.targetName || branchName;
     const fromRef = branch.from || defaultRefName;
-    console.log(`\nVerarbeite Branch: ${branchName} (von ${fromRef})`);
+    console.log(`\nVerarbeite Branch: ${branchName}${targetBranchName !== branchName ? ` -> ${targetBranchName}` : ""} (von ${fromRef})`);
 
-    const exists = effectiveDryRun ? false : await client.branchExists(branchName);
+    const exists = effectiveDryRun ? false : await client.branchExists(targetBranchName);
     if (exists) {
-      console.log(`Branch '${branchName}' existiert bereits. Überspringe Erstellung.`);
+      console.log(`Branch '${targetBranchName}' existiert bereits. Überspringe Erstellung.`);
     } else {
       const fromHash = effectiveDryRun ? "SIMULATED_HASH" : await client.getCommitHashForRef(fromRef);
       if (!fromHash) throw new Error(`Konnte Commit-Hash für Referenz '${fromRef}' nicht ermitteln`);
-      const created = await client.createBranch({ name: branchName, from: fromHash });
+      const created = await client.createBranch({ name: targetBranchName, from: fromHash });
       console.log("Branch erstellt:", created?.name || created);
     }
 
-    if (branch.createCommit !== false) {
-      const message = branch.commitMessage || `Initial commit on ${branchName}`;
-      const filePath = branch.filePath || cfg.defaultCommitFilePath;
+    if (branch.createCommit) {
+      const message = branch.commitMessage || `Initial commit on ${targetBranchName}`;
+      // Allow branch.filePath to be null to explicitly skip adding a file; fall back to global default only if undefined
+      const filePath = (branch.filePath === undefined) ? cfg.defaultCommitFilePath : branch.filePath;
       const content = branch.content || cfg.defaultCommitContent;
-      const commit = await client.createCommit({ branch: branchName, message, filePath, content });
-      console.log("Commit erstellt:", commit?.hash || commit);
+      if (filePath) {
+        const commit = await client.createCommit({ branch: targetBranchName, message, filePath, content });
+        console.log("Commit erstellt:", commit?.hash || commit);
+      } else {
+        console.log("Kein Datei-Pfad konfiguriert; überspringe Commit-Erstellung.");
+      }
     } else {
       console.log("Commit-Erstellung für diesen Branch deaktiviert.");
     }
