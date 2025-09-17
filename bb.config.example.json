@@ -6,10 +6,12 @@
   "appPassword": "${BITBUCKET_APP_PASSWORD}",
   "defaultCommitFilePath": "README.md",
   "defaultCommitContent": "Created by automation",
+  "createCommit": true,
   "dryRun": false,
   "branches": [
     { "name": "feature/alpha", "from": "main", "commitMessage": "Init feature alpha" },
-    { "name": "feature/beta" }
+    { "branch": "feature/beta" },
+    { "name": "feature/no-commit", "createCommit": false }
   ]
 }
 

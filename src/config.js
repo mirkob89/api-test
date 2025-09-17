@@ -32,18 +32,20 @@ function normalizeConfig(cfg) {
   const appPassword = cfg.appPassword || process.env.BITBUCKET_APP_PASSWORD;
   const defaultCommitFilePath = cfg.defaultCommitFilePath || "README.md";
   const defaultCommitContent = cfg.defaultCommitContent || "Created by automation.";
+  const createCommitDefault = cfg.createCommit !== undefined ? Boolean(cfg.createCommit) : true;
   const dryRunEnv = String(process.env.DRY_RUN || "").toLowerCase();
   const dryRun = cfg.dryRun ?? (dryRunEnv === "1" || dryRunEnv === "true");
 
   const branches = cfg.branches.map((b) => {
-    if (typeof b === "string") return { name: b };
+    if (typeof b === "string") return { name: b, createCommit: createCommitDefault };
+    const name = b.name || b.branch; // allow alias 'branch'
     return {
-      name: b.name,
+      name,
       from: b.from,
       commitMessage: b.commitMessage,
       filePath: b.filePath,
       content: b.content,
-      createCommit: b.createCommit !== false,
+      createCommit: b.createCommit !== undefined ? Boolean(b.createCommit) : createCommitDefault,
     };
   });
 
@@ -55,6 +57,7 @@ function normalizeConfig(cfg) {
     appPassword,
     defaultCommitFilePath,
     defaultCommitContent,
+    createCommit: createCommitDefault,
     dryRun,
     branches,
   };

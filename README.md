@@ -24,7 +24,9 @@ Felder:
 - `workspace`: Bitbucket Workspace
 - `repoSlug`: Repository-Slug
 - `branches`: Liste von Branch-Definitionen (`name`, optional `from`, `commitMessage`, `filePath`, `content`, `createCommit`)
+- Du kannst statt `name` auch `branch` verwenden
 - Optional: `username`, `appPassword`, `baseUrl`, `defaultCommitFilePath`, `defaultCommitContent`, `dryRun`
+ - Optional global: `createCommit` (Default true) – setzt das Standardverhalten fürs Anlegen eines initialen Commits, pro Branch via `createCommit: false` überschreibbar
 
 Env-Variablen (alternativ zur Konfig-Datei):
 - `BITBUCKET_USERNAME`, `BITBUCKET_APP_PASSWORD`, `BITBUCKET_BASE_URL`
@@ -43,3 +45,4 @@ npm run bb -- -c bb.config.json
 ## Hinweise
 - Branch-Quelle `from` kann ein Branch- oder Tag-Name sein. Standard ist der Default-Branch des Repos.
 - Der initiale Commit erstellt eine Datei (Default `README.md`).
+  - Das Erstellen des Commits ist optional: global via `createCommit: false` oder pro Branch via `createCommit: false`.
