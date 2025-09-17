@@ -1,0 +1,15 @@
+{
+  "baseUrl": "https://api.bitbucket.org/2.0",
+  "workspace": "your-workspace",
+  "repoSlug": "your-repo",
+  "username": "${BITBUCKET_USERNAME}",
+  "appPassword": "${BITBUCKET_APP_PASSWORD}",
+  "defaultCommitFilePath": "README.md",
+  "defaultCommitContent": "Created by automation",
+  "dryRun": false,
+  "branches": [
+    { "name": "feature/alpha", "from": "main", "commitMessage": "Init feature alpha" },
+    { "name": "feature/beta" }
+  ]
+}
+
